@@ -21,6 +21,8 @@ REPO="lululombard/Systemd2MQTT"
 BIN_DIR="${HOME}/.local/bin"
 CONF_DIR="${HOME}/.config/systemd2mqtt"
 UNIT_DIR="${HOME}/.config/systemd/user"
+TMP_ROOT=""
+trap '[ -n "$TMP_ROOT" ] && rm -rf "$TMP_ROOT"' EXIT
 
 log() { printf '%s\n' "install.sh: $*" >&2; }
 die() { log "error: $*"; exit 1; }
@@ -69,7 +71,7 @@ download_asset() {
 
 # Download and verify a release, echo the extracted directory.
 fetch_release() {
-    local ref="$1" arch json tag version tarball tmp
+    local ref="$1" arch json tag version tarball
     arch="$(detect_arch)"
     log "resolving release ${ref} for linux/${arch}"
     json="$(release_json "$ref")" || die "could not resolve release ${ref}"
@@ -78,15 +80,14 @@ fetch_release() {
     version="${tag#v}"
     tarball="systemd2mqtt_${version}_linux_${arch}.tar.gz"
 
-    tmp="$(mktemp -d)"
+    TMP_ROOT="$(mktemp -d)"
     log "downloading ${tarball}"
-    download_asset "$json" "$tarball" "${tmp}/${tarball}"
-    download_asset "$json" checksums.txt "${tmp}/checksums.txt"
-    (cd "$tmp" && sha256sum -c --ignore-missing --quiet checksums.txt) || die "checksum mismatch for ${tarball}"
+    download_asset "$json" "$tarball" "${TMP_ROOT}/${tarball}"
+    download_asset "$json" checksums.txt "${TMP_ROOT}/checksums.txt"
+    (cd "$TMP_ROOT" && sha256sum -c --ignore-missing --quiet checksums.txt) || die "checksum mismatch for ${tarball}"
     log "checksum ok"
-    mkdir -p "${tmp}/extracted"
-    tar -xzf "${tmp}/${tarball}" -C "${tmp}/extracted"
-    echo "${tmp}/extracted"
+    mkdir -p "${TMP_ROOT}/extracted"
+    tar -xzf "${TMP_ROOT}/${tarball}" -C "${TMP_ROOT}/extracted"
 }
 
 # Install from an extracted release directory.
@@ -139,7 +140,7 @@ install_from_dir() {
 }
 
 main() {
-    local ref=latest local_dir="" tmp=""
+    local ref=latest local_dir=""
     while [ $# -gt 0 ]; do
         case "$1" in
             -h|--help) usage ;;
@@ -160,9 +161,8 @@ main() {
     fi
 
     need curl jq
-    tmp="$(fetch_release "$ref")"
-    trap 'rm -rf "$(dirname "$tmp")"' EXIT
-    install_from_dir "$tmp"
+    fetch_release "$ref"
+    install_from_dir "${TMP_ROOT}/extracted"
 }
 
 main "$@"
