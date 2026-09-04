@@ -39,9 +39,10 @@ type Handler func(topic string, payload []byte, retained bool)
 
 // Client is the paho wrapper. Implements app.MQTTClient.
 type Client struct {
-	c   paho.Client
-	qos byte
-	log *slog.Logger
+	c      paho.Client
+	qos    byte
+	broker string
+	log    *slog.Logger
 
 	onConnect func()
 	onLost    func(error)
@@ -88,6 +89,7 @@ func New(cfg config.MQTTConfig, willTopic string, onConnect func(), onLost func(
 
 	cl := &Client{
 		qos:       cfg.QoS,
+		broker:    cfg.Broker,
 		log:       log,
 		onConnect: onConnect,
 		onLost:    onLost,
@@ -110,8 +112,7 @@ func New(cfg config.MQTTConfig, willTopic string, onConnect func(), onLost func(
 		SetCleanSession(true).
 		SetOrderMatters(true).
 		SetAutoReconnect(true).
-		SetConnectRetry(true).
-		SetConnectRetryInterval(connectRetryInterval).
+		SetConnectRetry(false).
 		SetMaxReconnectInterval(maxReconnectInterval).
 		SetWriteTimeout(publishTimeout).
 		SetOnConnectHandler(cl.handleConnect).
@@ -202,11 +203,43 @@ func (cl *Client) route(_ paho.Client, msg paho.Message) {
 	}
 }
 
-// Connect kicks off the first connection and returns right away. With ConnectRetry on,
-// paho keeps trying in the background until the broker answers.
+// Connect starts connecting in the background and returns right away. The first
+// connection is retried here instead of with paho's ConnectRetry, because paho only
+// mentions a refused CONNECT (wrong password, missing ACL) at its debug level and a
+// wrong password would otherwise be invisible in the journal. Once connected, paho's
+// AutoReconnect handles drops.
 func (cl *Client) Connect() error {
-	cl.c.Connect()
+	go cl.connectLoop()
 	return nil
+}
+
+// connectLoop retries every connectRetryInterval until the broker accepts us or the
+// client is closed. The first failure and then one a minute are logged as warnings,
+// the rest at debug.
+func (cl *Client) connectLoop() {
+	for attempt := 1; ; attempt++ {
+		select {
+		case <-cl.stop:
+			return
+		default:
+		}
+		tok := cl.c.Connect()
+		tok.Wait()
+		err := tok.Error()
+		if err == nil {
+			return
+		}
+		if attempt == 1 || attempt%12 == 0 {
+			cl.log.Warn("mqtt connect failed, retrying", "broker", cl.broker, "attempt", attempt, "error", err)
+		} else {
+			cl.log.Debug("mqtt connect failed, retrying", "broker", cl.broker, "attempt", attempt, "error", err)
+		}
+		select {
+		case <-cl.stop:
+			return
+		case <-time.After(connectRetryInterval):
+		}
+	}
 }
 
 // Publish queues a message and returns at once. The pump drops messages while
