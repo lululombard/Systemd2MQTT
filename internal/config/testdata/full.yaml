@@ -1,0 +1,37 @@
+node_id: office-kiosk
+device:
+  name: Office kiosk
+  manufacturer: Lucas
+  model: Kiosk
+  suggested_area: Office
+mqtt:
+  broker: tcp://10.2.0.1:1883
+  client_id: kiosk-mqtt
+  username: systemd2mqtt
+  password: change-me
+  base_topic: kiosk
+  keepalive: 45s
+  qos: 1
+homeassistant:
+  enabled: false
+  discovery_prefix: ha
+  status_topic: ha/status
+units:
+  - name: grafana-kiosk.service
+    scope: user
+    friendly_name: Grafana kiosk
+    icon: mdi:monitor-dashboard
+  - name: NetworkManager.service
+    scope: system
+    id: nm
+    restart_button: false
+    problem_sensor: false
+display:
+  enabled: false
+  off_mode: suspend
+  expose_mode_select: false
+systemd:
+  poll_interval: 10s
+  job_timeout: 20s
+  job_mode: fail
+log_level: debug

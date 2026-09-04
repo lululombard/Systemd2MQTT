@@ -1,0 +1,20 @@
+# VLC camera feed as a user template unit, one instance per camera.
+# Install to ~/.config/systemd/user/vlc@.service and put the stream URL in
+# ~/.config/vlc-cams/<instance>.env (mode 0600), e.g. VLC_URL=rtsp://10.0.0.1:7447/stream
+# Start with: systemctl --user start vlc@cam1.service
+# No [Install] section on purpose: instances stay stopped until Home Assistant starts them.
+# The session bus already exports WAYLAND_DISPLAY/DISPLAY/XAUTHORITY to user units,
+# so no Environment= lines are needed.
+
+[Unit]
+Description=VLC camera feed (%i)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+EnvironmentFile=%h/.config/vlc-cams/%i.env
+ExecStart=/snap/bin/vlc --no-video-title --fullscreen ${VLC_URL}
+Restart=on-abort
+# snap VLC ignores SIGTERM, so stop it hard; SuccessExitStatus makes that count as a clean stop (inactive, not failed)
+KillSignal=SIGKILL
+SuccessExitStatus=SIGKILL

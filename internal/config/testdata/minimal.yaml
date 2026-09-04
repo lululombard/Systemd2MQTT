@@ -1,0 +1,3 @@
+# Only the broker is set, everything else comes from defaults.
+mqtt:
+  broker: tcp://10.2.0.1:1883

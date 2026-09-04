@@ -1,0 +1,61 @@
+# GoReleaser config. Releases are built by .github/workflows/release.yml on v* tags.
+# Local snapshot: goreleaser build --snapshot --clean --single-target
+version: 2
+
+project_name: systemd2mqtt
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: systemd2mqtt
+    main: ./cmd/systemd2mqtt
+    binary: systemd2mqtt
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/lululombard/Systemd2MQTT/internal/version.Version={{ .Version }}
+      - -X github.com/lululombard/Systemd2MQTT/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/lululombard/Systemd2MQTT/internal/version.Date={{ .Date }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: tarball
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+      - config.example.yaml
+      - deploy/*
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^ci:"
+
+release:
+  github:
+    owner: lululombard
+    name: Systemd2MQTT
+  draft: false
+  prerelease: auto

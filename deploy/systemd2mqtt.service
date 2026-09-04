@@ -1,0 +1,24 @@
+[Unit]
+Description=Systemd2MQTT, systemd units and display power for Home Assistant over MQTT
+Documentation=https://github.com/lululombard/Systemd2MQTT
+After=graphical-session.target
+PartOf=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=%h/.local/bin/systemd2mqtt --config %h/.config/systemd2mqtt/config.yaml
+WatchdogSec=90s
+Restart=always
+RestartSec=3s
+RestartPreventExitStatus=2
+KillSignal=SIGTERM
+TimeoutStopSec=10s
+SyslogIdentifier=systemd2mqtt
+NoNewPrivileges=yes
+# No ProtectSystem/ProtectHome/PrivateTmp: user-manager sandboxing needs unprivileged userns,
+# and kernel.apparmor_restrict_unprivileged_userns=1 on this box makes ExecStart fail.
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,23 @@
+# Systemd2MQTT example config. Copy to ~/.config/systemd2mqtt/config.yaml (mode 0600)
+# and fill in the broker and credentials. Only mqtt.broker is required, everything
+# else has a default. Unknown keys are an error (exit code 2).
+node_id: office-kiosk
+device: { name: Office kiosk, suggested_area: Office }
+mqtt:
+  broker: tcp://10.2.0.1:1883        # ssl://host:8883 for TLS, then set tls.ca_file (and cert/key for mTLS)
+  username: systemd2mqtt
+  password: "change-me"              # or password_file: /home/lululombard/.config/systemd2mqtt/mqtt_password
+units:
+  - { name: grafana-kiosk.service, scope: user, friendly_name: Grafana kiosk, icon: mdi:monitor-dashboard }
+  # scope: system also works; it then needs the polkit rule from --print-polkit-rule
+templates:
+  - name: vlc@.service                # instances become vlc@cam1.service, vlc@cam2.service
+    scope: user
+    friendly_name: Camera
+    icon: mdi:cctv
+    exclusive: true                   # adds a "Camera" select (off / Front door / Parking); picking one stops the others first
+    instances:
+      - { name: cam1, friendly_name: Front door }
+      - { name: cam2, friendly_name: Parking }
+display:
+  off_mode: off                      # standby|suspend|off, PowerSaveMode 1|2|3 ("suspend" = old xset behaviour)

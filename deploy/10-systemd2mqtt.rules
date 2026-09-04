@@ -1,0 +1,4 @@
+// 10-systemd2mqtt.rules, rendered by: systemd2mqtt --print-polkit-rule
+//
+// No unit uses scope: system, so no polkit rule is needed. User units are
+// managed over the session bus, which never asks polkit. Nothing to install.

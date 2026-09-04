@@ -1,0 +1,19 @@
+node_id: office-kiosk
+device: { name: Office kiosk, suggested_area: Office }
+mqtt:
+  broker: tcp://10.2.0.1:1883
+  username: systemd2mqtt
+  password: "change-me"
+units:
+  - { name: grafana-kiosk.service, scope: user, friendly_name: Grafana kiosk, icon: mdi:monitor-dashboard }
+templates:
+  - name: vlc@.service
+    scope: user
+    friendly_name: Camera
+    icon: mdi:cctv
+    exclusive: true
+    instances:
+      - { name: cam1, friendly_name: Front door }
+      - { name: cam2, friendly_name: Parking }
+display:
+  off_mode: off

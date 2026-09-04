@@ -1,0 +1,6 @@
+mqtt:
+  broker: ssl://10.2.0.1:8883
+  tls:
+    ca_file: /etc/ssl/certs/ca.pem
+    cert_file: /etc/ssl/certs/client.pem
+    key_file: /etc/ssl/private/client.key

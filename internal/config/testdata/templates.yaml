@@ -1,0 +1,14 @@
+node_id: office-kiosk
+mqtt:
+  broker: tcp://10.2.0.1:1883
+units:
+  - { name: grafana-kiosk.service, scope: user, friendly_name: Grafana kiosk }
+templates:
+  - name: vlc@.service
+    scope: user
+    friendly_name: Camera
+    icon: mdi:cctv
+    exclusive: true
+    instances:
+      - cam1
+      - { name: cam2, friendly_name: Parking }
