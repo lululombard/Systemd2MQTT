@@ -174,24 +174,13 @@ Adding a camera later is one more env file plus one line under `instances:` in `
 
 ### 2. Install the release
 
-Once the repo is public:
-
 ```sh
 curl -fsSL https://raw.githubusercontent.com/lululombard/Systemd2MQTT/main/deploy/install.sh | bash -s -- latest
 ```
 
 Or from a checkout: `deploy/install.sh latest` (or a tag like `v1.0.0`). The script resolves the release through the GitHub API, downloads the tarball for your architecture and `checksums.txt`, verifies the sha256, installs the binary atomically to `~/.local/bin/systemd2mqtt`, copies `config.example.yaml` to `~/.config/systemd2mqtt/config.yaml` (0600) if none exists, installs the two user units, runs `daemon-reload` and restarts the daemon if it was running.
 
-While the repo is still private, download on a workstation and copy it over:
-
-```sh
-gh release download v1.0.0 -R lululombard/Systemd2MQTT -p 'systemd2mqtt_*_linux_amd64.tar.gz'
-mkdir systemd2mqtt-release && tar -xzf systemd2mqtt_*_linux_amd64.tar.gz -C systemd2mqtt-release
-scp -r systemd2mqtt-release office-kiosk:
-ssh office-kiosk 'systemd2mqtt-release/deploy/install.sh --local ~/systemd2mqtt-release'
-```
-
-A `GITHUB_TOKEN` environment variable or a token in `~/.config/systemd2mqtt/github_token` also lets `install.sh` talk to the private repo directly.
+Already have the tarball (offline box, or you built it yourself)? Extract it and run `deploy/install.sh --local <dir>`.
 
 ### 3. Configure
 

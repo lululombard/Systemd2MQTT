@@ -6,9 +6,6 @@
 #   deploy/install.sh v1.2.3          # a specific tag
 #   deploy/install.sh --local <dir>   # from an already extracted release tarball
 #
-# No token is needed for a public repo. For a private repo set GITHUB_TOKEN in the
-# environment or put the token in ~/.config/systemd2mqtt/github_token (mode 0600).
-#
 # What it does:
 #   - downloads the tarball for this machine's architecture plus checksums.txt
 #   - verifies the sha256 (sha256sum -c --ignore-missing)
@@ -24,7 +21,6 @@ REPO="lululombard/Systemd2MQTT"
 BIN_DIR="${HOME}/.local/bin"
 CONF_DIR="${HOME}/.config/systemd2mqtt"
 UNIT_DIR="${HOME}/.config/systemd/user"
-TOKEN_FILE="${CONF_DIR}/github_token"
 
 log() { printf '%s\n' "install.sh: $*" >&2; }
 die() { log "error: $*"; exit 1; }
@@ -49,24 +45,8 @@ detect_arch() {
     esac
 }
 
-# Token is optional; the repo is public. Env wins over the file.
-github_token() {
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
-        printf '%s' "$GITHUB_TOKEN"
-    elif [ -r "$TOKEN_FILE" ]; then
-        tr -d '[:space:]' < "$TOKEN_FILE"
-    fi
-}
-
-# curl with the auth header only when we have a token.
 gh_curl() {
-    local token
-    token="$(github_token)"
-    if [ -n "$token" ]; then
-        curl -fsSL --retry 3 -H "Authorization: Bearer ${token}" "$@"
-    else
-        curl -fsSL --retry 3 "$@"
-    fi
+    curl -fsSL --retry 3 "$@"
 }
 
 # Resolve "latest" or a tag to the release JSON.
@@ -79,8 +59,7 @@ release_json() {
     fi
 }
 
-# Download one release asset by name into the target path. Uses the API asset URL so
-# it also works on private repos (the browser_download_url needs a session there).
+# Download one release asset by name into the target path.
 download_asset() {
     local json="$1" name="$2" out="$3" url
     url="$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .url' <<< "$json")"
@@ -93,7 +72,7 @@ fetch_release() {
     local ref="$1" arch json tag version tarball tmp
     arch="$(detect_arch)"
     log "resolving release ${ref} for linux/${arch}"
-    json="$(release_json "$ref")" || die "could not resolve release ${ref} (is the repo public, or is a token set?)"
+    json="$(release_json "$ref")" || die "could not resolve release ${ref}"
     tag="$(jq -r .tag_name <<< "$json")"
     [ -n "$tag" ] && [ "$tag" != null ] || die "release JSON has no tag_name"
     version="${tag#v}"
