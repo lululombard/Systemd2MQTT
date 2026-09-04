@@ -75,11 +75,11 @@ func New(cfg config.MQTTConfig, willTopic string, onConnect func(), onLost func(
 	if log == nil {
 		log = slog.Default()
 	}
-	// Paho reports failed connect attempts (and the retry sleep) only through its
-	// package-level loggers, so route those into slog once. Without this a dead
-	// broker is completely silent at the default log level.
+	// Route paho's package-level loggers into slog once. Its ERROR lines repeat on
+	// every connect attempt and connectLoop already reports the broker's answer, so
+	// they only show at debug; CRITICAL stays visible.
 	pahoLogOnce.Do(func() {
-		paho.ERROR = pahoLogger{log: log, level: slog.LevelWarn}
+		paho.ERROR = pahoLogger{log: log, level: slog.LevelDebug}
 		paho.CRITICAL = pahoLogger{log: log, level: slog.LevelError}
 	})
 	pw, err := cfg.ResolvePassword()

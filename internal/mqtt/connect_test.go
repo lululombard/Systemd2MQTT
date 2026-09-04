@@ -4,16 +4,35 @@ import (
 	"bytes"
 	"log/slog"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/lululombard/Systemd2MQTT/internal/config"
 )
 
+// lockedBuffer makes a bytes.Buffer safe to read while the connect goroutine logs into it.
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
 // A broker that refuses the connection must show up in the log as a warning, not
 // disappear into paho's debug output.
 func TestConnectFailureIsLogged(t *testing.T) {
-	var buf bytes.Buffer
+	var buf lockedBuffer
 	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	cfg := config.MQTTConfig{Broker: "tcp://127.0.0.1:1", ClientID: "t", KeepAlive: 30 * time.Second}
 	cl, err := New(cfg, "", nil, nil, log)
