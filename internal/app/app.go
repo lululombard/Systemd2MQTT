@@ -283,10 +283,11 @@ func (a *App) handle(ev event) {
 		a.publishDisplay()
 		a.publishDaemonState()
 	case evMQTTConnected:
-		a.log.Info("mqtt connected", "reconnects", a.mq.Reconnects())
+		// The client already logged the connect; this is only the app's reaction.
+		a.log.Debug("full publish scheduled after mqtt connect", "reconnects", a.mq.Reconnects())
 		a.requestFullPublish()
 	case evMQTTLost:
-		a.log.Warn("mqtt connection lost", "err", e.err)
+		a.log.Debug("mqtt loss noted, waiting for reconnect", "err", e.err)
 	case evInbound:
 		a.handleInbound(e)
 	case evJobDone:
